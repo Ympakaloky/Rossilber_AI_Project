@@ -69,7 +69,7 @@ git push -u origin main
    |---|---|
    | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | значение поля `client_email` из JSON |
    | `GOOGLE_PRIVATE_KEY` | значение поля `private_key` из JSON (целиком, вместе с `-----BEGIN PRIVATE KEY-----...`) |
-   | `SPREADSHEET_ID` | ID вашей таблицы |
+   | `SPREADSHEET_ID` | ID вашей таблицы `1vY2n99FyQl1EmKIemqtsJjePz13C3POW2MauCdjJO34` |  
    | `SHEET_NAME` | название листа, например `Sheet1` или `Лист1` (по умолчанию `Sheet1`) |
 
 5. Запустите деплой (Deploy site / Trigger deploy).

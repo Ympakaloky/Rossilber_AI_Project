@@ -1,11 +1,26 @@
 const { google } = require('googleapis');
 
-// Авторизация через service account (данные берутся из переменных окружения Netlify)
+// Авторизация через service account.
+// Ключ хранится ЦЕЛИКОМ (весь JSON-файл) в переменной GOOGLE_SERVICE_ACCOUNT_KEY_B64,
+// закодированный в base64 — это избавляет от проблем с потерей переносов строк
+// при копировании private_key в поле Netlify.
 async function getSheetsClient() {
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_B64;
+  if (!b64) {
+    throw new Error('Переменная окружения GOOGLE_SERVICE_ACCOUNT_KEY_B64 не задана');
+  }
+
+  let keyJson;
+  try {
+    keyJson = JSON.parse(Buffer.from(b64, 'base64').toString('utf-8'));
+  } catch (e) {
+    throw new Error('Не удалось разобрать GOOGLE_SERVICE_ACCOUNT_KEY_B64 — проверьте, что это корректный base64 JSON-ключа');
+  }
+
   const auth = new google.auth.JWT(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    keyJson.client_email,
     null,
-    (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    keyJson.private_key,
     ['https://www.googleapis.com/auth/spreadsheets']
   );
   await auth.authorize();
