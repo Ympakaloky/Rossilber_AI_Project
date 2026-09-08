@@ -1,0 +1,8 @@
+{
+  "name": "sheet-project",
+  "version": "1.0.0",
+  "description": "Сайт на Netlify для управления Google Таблицей (Партия / Продукт / Количество)",
+  "dependencies": {
+    "googleapis": "^140.0.0"
+  }
+}
