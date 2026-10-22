@@ -24,47 +24,64 @@ function getSheetsClient() {
 }
 
 export default async (req: Request): Promise<Response> => {
-  if (req.method !== "POST") {
-    return Response.json({ error: "Метод не поддерживается" }, { status: 405 });
-  }
-
   try {
-    const data = (await req.json()) as BatchPayload;
-
-    if (!data.recipe || !data.batch) {
-      return Response.json(
-        { error: "Поля «Рецепт» и «Партия» обязательны" },
-        { status: 400 },
-      );
-    }
-
     const spreadsheetId = process.env.SPREADSHEET_ID;
     const sheetName = process.env.BATCHES_SHEET_NAME ?? "batches";
     if (!spreadsheetId) {
       throw new Error("Не задана переменная SPREADSHEET_ID");
     }
-
     const sheets = getSheetsClient();
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `'${sheetName}'!A:F`,
-      valueInputOption: "RAW",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [
-          [
-            data.recipe,
-            data.batch,
-            data.productionSite,
-            data.materialWeight,
-            data.releaseDate,
-            data.issuedBy,
-          ],
-        ],
-      },
-    });
 
-    return Response.json({ success: true });
+    if (req.method === "GET") {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `'${sheetName}'!A2:F`,
+      });
+      const values = res.data.values ?? [];
+      const batches = values.map((r, i) => ({
+        row: i + 2,
+        recipe: r[0] ?? "",
+        batch: r[1] ?? "",
+        productionSite: r[2] ?? "",
+        materialWeight: r[3] ?? "",
+        releaseDate: r[4] ?? "",
+        issuedBy: r[5] ?? "",
+      }));
+      return Response.json(batches);
+    }
+
+    if (req.method === "POST") {
+      const data = (await req.json()) as BatchPayload;
+
+      if (!data.recipe || !data.batch) {
+        return Response.json(
+          { error: "Поля «Рецепт» и «Партия» обязательны" },
+          { status: 400 },
+        );
+      }
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `'${sheetName}'!A:F`,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [
+            [
+              data.recipe,
+              data.batch,
+              data.productionSite,
+              data.materialWeight,
+              data.releaseDate,
+              data.issuedBy,
+            ],
+          ],
+        },
+      });
+      return Response.json({ success: true });
+    }
+
+    return Response.json({ error: "Метод не поддерживается" }, { status: 405 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Неизвестная ошибка";
     return Response.json({ error: message }, { status: 500 });

@@ -25,13 +25,24 @@ function PreviewPage() {
             display: "flex",
             flexDirection: "column",
             gap: 2,
-            color: "white",
           }}
         >
-          <StandartBtn
-            name="Создать Партию"
-            action={() => navigate("/batches")}
-          />
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 2,
+            }}
+          >
+            <StandartBtn
+              name="Создание партии"
+              action={() => navigate("/batches")}
+            />
+            <StandartBtn
+              name="Список партий"
+              action={() => navigate("/batchesList")}
+            />
+          </Box>
           <StandartBtn
             name="Фактическое выполнение"
             action={() => navigate("/actual_production")}
