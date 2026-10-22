@@ -20,7 +20,14 @@ function PreviewPage() {
           gap: 2,
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            color: "white",
+          }}
+        >
           <StandartBtn
             name="Создать Партию"
             action={() => navigate("/batches")}

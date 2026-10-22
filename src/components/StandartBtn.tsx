@@ -15,6 +15,7 @@ function StandartBtn({ name, action }: StandartBtnProps) {
         minWidth: 120,
         textTransform: "none",
         backgroundColor: "var(--accent-bg)",
+        color: "white",
       }}
     >
       {name}

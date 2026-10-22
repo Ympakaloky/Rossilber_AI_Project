@@ -1,10 +1,20 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
+import { createTheme, ThemeProvider } from "@mui/material";
 
-createRoot(document.getElementById('root')!).render(
+const darkTheme = createTheme({
+  palette: { mode: "dark" },
+  typography: {
+    fontFamily: '"Montserrat", system-ui, sans-serif',
+  },
+});
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider theme={darkTheme}>
+      <App />
+    </ThemeProvider>
   </StrictMode>,
-)
+);

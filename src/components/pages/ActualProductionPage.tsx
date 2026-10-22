@@ -40,7 +40,7 @@ function ActualProductionPage() {
             sx={{
               display: "flex",
               flexDirection: "column",
-              backgroundColor: "#F4EBD0",
+              backgroundColor: "var(--accent-bg)",
               borderRadius: 2,
               boxShadow:
                 "0px 4px 20px rgba(0, 0, 0, 0.05), 0px 1px 3px rgba(0, 0, 0, 0.1)",
@@ -48,7 +48,7 @@ function ActualProductionPage() {
               width: "66%",
               maxWidth: "1200px",
               minHeight: "200px",
-              color: "#3E3424",
+              color: "white",
             }}
           >
             <Grid container spacing={2}>
