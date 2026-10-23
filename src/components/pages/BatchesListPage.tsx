@@ -254,7 +254,7 @@ function BatchesListPage() {
                             }}
                             onClick={() => openEdit(b)}
                           >
-                            Изменить партию
+                            Изменить
                           </Button>
                           <Button
                             size="small"
@@ -267,7 +267,7 @@ function BatchesListPage() {
                             }}
                             onClick={() => setDeleting(b)}
                           >
-                            Удалить партию
+                            Удалить
                           </Button>
                         </TableCell>
                       </TableRow>
