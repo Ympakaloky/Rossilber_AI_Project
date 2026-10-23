@@ -25,40 +25,52 @@ function PreviewPage() {
             display: "flex",
             flexDirection: "column",
             gap: 2,
+            width: "100%",
+            maxWidth: 600,
           }}
         >
           <Box
             sx={{
               display: "flex",
               flexDirection: "row",
+              alignItems: "stretch",
               gap: 2,
             }}
           >
-            <StandartBtn
-              name="Создание партии"
-              action={() => navigate("/batches")}
-            />
-            <StandartBtn
-              name="Список партий"
-              action={() => navigate("/batchesList")}
-            />
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Создание партии"
+                action={() => navigate("/batches")}
+              />
+            </Box>
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Список партий"
+                action={() => navigate("/batchesList")}
+              />
+            </Box>
           </Box>
 
           <Box
             sx={{
               display: "flex",
               flexDirection: "row",
+              alignItems: "stretch",
               gap: 2,
             }}
           >
-            <StandartBtn
-              name="Выполнение"
-              action={() => navigate("/actual_production")}
-            />
-            <StandartBtn
-              name="Тех карты"
-              action={() => navigate("/productionList")}
-            />
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Выполнение"
+                action={() => navigate("/actual_production")}
+              />
+            </Box>
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Тех карты"
+                action={() => navigate("/productionList")}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>

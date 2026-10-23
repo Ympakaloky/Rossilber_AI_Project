@@ -11,8 +11,10 @@ function StandartBtn({ name, action }: StandartBtnProps) {
       variant="contained"
       color="primary"
       onClick={action}
+      fullWidth
       sx={{
         minWidth: 120,
+        height: "100%", // растягиваем по высоте обёртки
         textTransform: "none",
         backgroundColor: "var(--accent-bg)",
         color: "white",
