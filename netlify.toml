@@ -2,3 +2,28 @@
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# Адреса API стоят выше общего правила для страниц: порядок правил важен
+[[redirects]]
+  from = "/api/batches"
+  to = "/.netlify/functions/batches"
+  status = 200
+
+[[redirects]]
+  from = "/api/actual-production"
+  to = "/.netlify/functions/actual-production"
+  status = 200
+
+[[redirects]]
+  from = "/api/final-inspection"
+  to = "/.netlify/functions/final-inspection"
+  status = 200
+
+# Любой другой адрес отдаёт приложение, дальше маршрут разбирает React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

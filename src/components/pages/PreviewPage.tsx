@@ -72,6 +72,28 @@ function PreviewPage() {
               />
             </Box>
           </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "stretch",
+              gap: 2,
+            }}
+          >
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Выходной контроль"
+                action={() => navigate("/finalnspection")}
+              />
+            </Box>
+            <Box sx={{ flex: 1, display: "flex" }}>
+              <StandartBtn
+                name="Список выходного контроля"
+                action={() => navigate("/finalnspectionList")}
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
     </Box>

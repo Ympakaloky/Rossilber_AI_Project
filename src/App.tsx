@@ -6,6 +6,8 @@ import BatchesPage from "./components/pages/BatchesPage";
 import ActualProductionPage from "./components/pages/ActualProductionPage";
 import BatchesListPage from "./components/pages/BatchesListPage";
 import ProductionListPage from "./components/pages/ProductionListPage";
+import FinalnspectionPage from "./components/pages/FinalnspectionPage";
+import FinalnspectionListPage from "./components/pages/FinalnspectionListPage";
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
         <Route path="/batchesList" Component={BatchesListPage} />
         <Route path="/actual_production" Component={ActualProductionPage} />
         <Route path="/productionList" Component={ProductionListPage} />
+        <Route path="/finalnspection" Component={FinalnspectionPage} />
+        <Route path="/finalnspectionList" Component={FinalnspectionListPage} />
       </Routes>
     </BrowserRouter>
   );
