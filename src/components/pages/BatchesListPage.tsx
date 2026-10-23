@@ -45,15 +45,35 @@ const emptyForm: BatchForm = {
   issuedBy: "",
 };
 
+// Строка в таблице + то, что мы в ней ожидаем увидеть (для проверки на сервере)
+function identityOf(b: BatchRow) {
+  return { row: b.row, original: { recipe: b.recipe, batch: b.batch } };
+}
+
+async function sendBatch(method: "PUT" | "DELETE", body: unknown) {
+  const res = await fetch("/api/batches", {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? "Не удалось выполнить действие");
+  }
+}
+
 function BatchesListPage() {
   const [batches, setBatches] = useState<BatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const [editing, setEditing] = useState<BatchRow | null>(null);
   const [editForm, setEditForm] = useState<BatchForm>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<Notice | null>(null);
+
+  const [deleting, setDeleting] = useState<BatchRow | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadBatches = useCallback(async () => {
     try {
@@ -74,6 +94,11 @@ function BatchesListPage() {
   useEffect(() => {
     loadBatches();
   }, [loadBatches]);
+
+  const showError = (err: unknown) => {
+    const text = err instanceof Error ? err.message : "Неизвестная ошибка";
+    setNotice({ severity: "error", text });
+  };
 
   const openEdit = (b: BatchRow) => {
     setEditing(b);
@@ -101,23 +126,36 @@ function BatchesListPage() {
     if (!editing) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/batches", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...editForm, row: editing.row }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error ?? "Не удалось сохранить партию");
-      }
+      await sendBatch("PUT", { ...editForm, ...identityOf(editing) });
       setEditing(null);
       setNotice({ severity: "success", text: "Партия обновлена" });
       await loadBatches();
     } catch (err) {
-      const text = err instanceof Error ? err.message : "Неизвестная ошибка";
-      setNotice({ severity: "error", text });
+      showError(err);
+      await loadBatches();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const closeDelete = () => {
+    if (!deleteBusy) setDeleting(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      await sendBatch("DELETE", identityOf(deleting));
+      setDeleting(null);
+      setNotice({ severity: "success", text: "Партия удалена" });
+      await loadBatches();
+    } catch (err) {
+      showError(err);
+      setDeleting(null);
+      await loadBatches();
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -227,7 +265,7 @@ function BatchesListPage() {
                               minWidth: 0,
                               px: 1,
                             }}
-                            onClick={() => console.log("удалить", b.row)}
+                            onClick={() => setDeleting(b)}
                           >
                             Удалить партию
                           </Button>
@@ -270,6 +308,29 @@ function BatchesListPage() {
           </Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}>
             {saving ? "Сохраняем..." : "Сохранить"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleting !== null} onClose={closeDelete}>
+        <DialogTitle>Удалить партию?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Партия «{deleting?.batch}» (рецепт {deleting?.recipe}) будет удалена
+            из таблицы. Это действие нельзя отменить.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDelete} disabled={deleteBusy}>
+            Отмена
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleDelete}
+            disabled={deleteBusy}
+          >
+            {deleteBusy ? "Удаляем..." : "Удалить"}
           </Button>
         </DialogActions>
       </Dialog>

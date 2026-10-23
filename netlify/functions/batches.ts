@@ -9,6 +9,11 @@ interface BatchPayload {
   issuedBy: string;
 }
 
+interface RowIdentity {
+  row: number;
+  original: { recipe: string; batch: string };
+}
+
 function getSheetsClient() {
   const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_B64;
   if (!b64) {
@@ -23,6 +28,8 @@ function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
+type Sheets = ReturnType<typeof getSheetsClient>;
+
 function toRowValues(data: BatchPayload) {
   return [
     data.recipe,
@@ -33,6 +40,57 @@ function toRowValues(data: BatchPayload) {
     data.issuedBy,
   ];
 }
+
+function isValidIdentity(data: Partial<RowIdentity>): data is RowIdentity {
+  return (
+    Number.isInteger(data.row) &&
+    (data.row as number) >= 2 &&
+    typeof data.original?.recipe === "string" &&
+    typeof data.original?.batch === "string"
+  );
+}
+
+// Читает строку из таблицы и сверяет рецепт и партию с ожидаемыми
+async function rowMatches(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string,
+  identity: RowIdentity,
+): Promise<boolean> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${sheetName}'!A${identity.row}:B${identity.row}`,
+  });
+  const current = (res.data.values ?? [])[0] ?? [];
+  return (
+    (current[0] ?? "") === identity.original.recipe &&
+    (current[1] ?? "") === identity.original.batch
+  );
+}
+
+// Для удаления строки Google требует числовой id листа, а не его название
+async function getSheetId(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string,
+): Promise<number> {
+  const res = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties(sheetId,title)",
+  });
+  const sheet = res.data.sheets?.find((s) => s.properties?.title === sheetName);
+  const id = sheet?.properties?.sheetId;
+  if (id === undefined || id === null) {
+    throw new Error(`Лист «${sheetName}» не найден`);
+  }
+  return id;
+}
+
+const conflict = () =>
+  Response.json(
+    { error: "Таблица изменилась. Обновите страницу и повторите действие." },
+    { status: 409 },
+  );
 
 export default async (req: Request): Promise<Response> => {
   try {
@@ -82,11 +140,11 @@ export default async (req: Request): Promise<Response> => {
     }
 
     if (req.method === "PUT") {
-      const data = (await req.json()) as BatchPayload & { row: number };
+      const data = (await req.json()) as BatchPayload & Partial<RowIdentity>;
 
-      if (!Number.isInteger(data.row) || data.row < 2) {
+      if (!isValidIdentity(data)) {
         return Response.json(
-          { error: "Некорректный номер строки" },
+          { error: "Некорректные данные строки" },
           { status: 400 },
         );
       }
@@ -96,12 +154,49 @@ export default async (req: Request): Promise<Response> => {
           { status: 400 },
         );
       }
+      if (!(await rowMatches(sheets, spreadsheetId, sheetName, data))) {
+        return conflict();
+      }
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `'${sheetName}'!A${data.row}:F${data.row}`,
         valueInputOption: "RAW",
         requestBody: { values: [toRowValues(data)] },
+      });
+      return Response.json({ success: true });
+    }
+
+    if (req.method === "DELETE") {
+      const data = (await req.json()) as Partial<RowIdentity>;
+
+      if (!isValidIdentity(data)) {
+        return Response.json(
+          { error: "Некорректные данные строки" },
+          { status: 400 },
+        );
+      }
+      if (!(await rowMatches(sheets, spreadsheetId, sheetName, data))) {
+        return conflict();
+      }
+
+      const sheetId = await getSheetId(sheets, spreadsheetId, sheetName);
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId,
+                  dimension: "ROWS",
+                  startIndex: data.row - 1,
+                  endIndex: data.row,
+                },
+              },
+            },
+          ],
+        },
       });
       return Response.json({ success: true });
     }
