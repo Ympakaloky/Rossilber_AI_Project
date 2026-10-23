@@ -43,10 +43,23 @@ function PreviewPage() {
               action={() => navigate("/batchesList")}
             />
           </Box>
-          <StandartBtn
-            name="Фактическое выполнение"
-            action={() => navigate("/actual_production")}
-          />
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 2,
+            }}
+          >
+            <StandartBtn
+              name="Выполнение"
+              action={() => navigate("/actual_production")}
+            />
+            <StandartBtn
+              name="Тех карты"
+              action={() => navigate("/productionList")}
+            />
+          </Box>
           <StandartBtn name="Архив ТК" action={() => navigate("/archive")} />
         </Box>
       </Box>

@@ -24,3 +24,17 @@ export interface DosingForm {
   endTime: string;
   fullName: string;
 }
+
+// Операция так, как она хранится в таблице: план и факт вместе
+export type OperationRecord = OperationPlan & OperationFact;
+
+// Одна отправка формы «Фактическое выполнение»
+export interface ProductionRecord {
+  submissionId: string;
+  submittedAt: string;
+  batch: string;
+  recipe: string;
+  productionDate: string;
+  dosing: DosingForm;
+  operations: OperationRecord[];
+}

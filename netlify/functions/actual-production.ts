@@ -141,8 +141,74 @@ async function getSheetIds(
   });
 }
 
+// Значение ячейки как строка (пустые ячейки в конце строки Google не присылает)
+const cell = (row: unknown[], index: number): string =>
+  String(row[index] ?? "");
+
+// Читает оба листа и собирает отправки: главная строка + её операции
+async function listSubmissions(
+  sheets: Sheets,
+  spreadsheetId: string,
+  productionSheet: string,
+  componentsSheet: string,
+) {
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId,
+    ranges: [`'${productionSheet}'!A2:H`, `'${componentsSheet}'!A2:N`],
+  });
+  const [mainRange, componentsRange] = res.data.valueRanges ?? [];
+  const mainRows = mainRange?.values ?? [];
+  const componentRows = componentsRange?.values ?? [];
+
+  // Группируем строки компонентов по submission_id
+  const operationsById = new Map<string, OperationInput[]>();
+  for (const r of componentRows) {
+    const id = cell(r, 0);
+    if (id === "") continue;
+    const list = operationsById.get(id) ?? [];
+    list.push({
+      id: Number(cell(r, 1)),
+      operation: cell(r, 2),
+      name: cell(r, 3),
+      quantity: cell(r, 4),
+      mass: cell(r, 5),
+      fact: cell(r, 6),
+      preparedBy: cell(r, 7),
+      unpackedBy: cell(r, 8),
+      note: cell(r, 9),
+      moistureCheckDate: cell(r, 10),
+      moistureBatch: cell(r, 11),
+      moistureNorm: cell(r, 12),
+      moistureResult: cell(r, 13),
+    });
+    operationsById.set(id, list);
+  }
+
+  const submissions = mainRows
+    .filter((r) => cell(r, 0) !== "")
+    .map((r) => ({
+      submissionId: cell(r, 0),
+      submittedAt: cell(r, 1),
+      batch: cell(r, 2),
+      recipe: cell(r, 3),
+      productionDate: cell(r, 4),
+      dosing: {
+        startTime: cell(r, 5),
+        endTime: cell(r, 6),
+        fullName: cell(r, 7),
+      },
+      operations: (operationsById.get(cell(r, 0)) ?? []).sort(
+        (a, b) => a.id - b.id,
+      ),
+    }));
+
+  // Новые сверху (даты в формате ISO корректно сортируются как строки)
+  submissions.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  return submissions;
+}
+
 export default async (req: Request): Promise<Response> => {
-  if (req.method !== "POST") {
+  if (req.method !== "GET" && req.method !== "POST") {
     return Response.json({ error: "Метод не поддерживается" }, { status: 405 });
   }
 
@@ -157,6 +223,17 @@ export default async (req: Request): Promise<Response> => {
     const componentsSheet =
       process.env.ACTUAL_PRODUCTION_COMPONENTS_SHEET_NAME ??
       "actual_production_components";
+
+    if (req.method === "GET") {
+      const sheets = getSheetsClient();
+      const submissions = await listSubmissions(
+        sheets,
+        spreadsheetId,
+        productionSheet,
+        componentsSheet,
+      );
+      return Response.json(submissions);
+    }
 
     const body = (await req.json()) as Partial<ActualProductionPayload>;
     const problem = findProblem(body);
