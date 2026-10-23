@@ -1,42 +1,125 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
 import Header from "../Header";
-import type { BatchRow } from "../../types/batch";
+import type { BatchForm, BatchRow } from "../../types/batch";
+
+interface Notice {
+  severity: "success" | "error";
+  text: string;
+}
+
+const formFields: { key: keyof BatchForm; label: string; size: number }[] = [
+  { key: "recipe", label: "Рецепт", size: 6 },
+  { key: "batch", label: "Партия", size: 6 },
+  { key: "productionSite", label: "Рабочий центр", size: 8 },
+  { key: "materialWeight", label: "Масса навески, кг", size: 4 },
+  { key: "releaseDate", label: "Дата выдачи карты", size: 6 },
+  { key: "issuedBy", label: "Выдал", size: 6 },
+];
+
+const emptyForm: BatchForm = {
+  recipe: "",
+  batch: "",
+  productionSite: "",
+  materialWeight: "",
+  releaseDate: "",
+  issuedBy: "",
+};
 
 function BatchesListPage() {
   const [batches, setBatches] = useState<BatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/batches");
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error ?? "Не удалось загрузить партии");
-        }
-        setBatches(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Неизвестная ошибка");
-      } finally {
-        setLoading(false);
+  const [editing, setEditing] = useState<BatchRow | null>(null);
+  const [editForm, setEditForm] = useState<BatchForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  const loadBatches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/batches");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Не удалось загрузить партии");
       }
-    };
-    load();
+      setBatches(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Неизвестная ошибка");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadBatches();
+  }, [loadBatches]);
+
+  const openEdit = (b: BatchRow) => {
+    setEditing(b);
+    setEditForm({
+      recipe: b.recipe,
+      batch: b.batch,
+      productionSite: b.productionSite,
+      materialWeight: b.materialWeight,
+      releaseDate: b.releaseDate,
+      issuedBy: b.issuedBy,
+    });
+  };
+
+  const closeEdit = () => {
+    if (!saving) setEditing(null);
+  };
+
+  const handleEditChange =
+    (field: keyof BatchForm) =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setEditForm({ ...editForm, [field]: e.target.value });
+    };
+
+  const handleSave = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/batches", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...editForm, row: editing.row }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Не удалось сохранить партию");
+      }
+      setEditing(null);
+      setNotice({ severity: "success", text: "Партия обновлена" });
+      await loadBatches();
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "Неизвестная ошибка";
+      setNotice({ severity: "error", text });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column" }}>
@@ -107,8 +190,8 @@ function BatchesListPage() {
                       <TableCell>Рецепт</TableCell>
                       <TableCell>Партия</TableCell>
                       <TableCell>Рабочий центр</TableCell>
-                      <TableCell>Масса навески</TableCell>
-                      <TableCell>Дата выдачи</TableCell>
+                      <TableCell>Масса навески, кг</TableCell>
+                      <TableCell>Дата выдачи карты</TableCell>
                       <TableCell>Выдал</TableCell>
                       <TableCell>Действия</TableCell>
                     </TableRow>
@@ -131,9 +214,9 @@ function BatchesListPage() {
                               minWidth: 0,
                               px: 1,
                             }}
-                            onClick={() => console.log("изменить", b.row)}
+                            onClick={() => openEdit(b)}
                           >
-                            Изменить
+                            Изменить партию
                           </Button>
                           <Button
                             size="small"
@@ -146,7 +229,7 @@ function BatchesListPage() {
                             }}
                             onClick={() => console.log("удалить", b.row)}
                           >
-                            Удалить
+                            Удалить партию
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -158,6 +241,50 @@ function BatchesListPage() {
           </Box>
         </Box>
       </Box>
+
+      <Dialog
+        open={editing !== null}
+        onClose={closeEdit}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Изменить партию</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            {formFields.map((f) => (
+              <Grid key={f.key} size={f.size}>
+                <TextField
+                  label={f.label}
+                  variant="outlined"
+                  fullWidth
+                  value={editForm[f.key]}
+                  onChange={handleEditChange(f.key)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeEdit} disabled={saving}>
+            Отмена
+          </Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving}>
+            {saving ? "Сохраняем..." : "Сохранить"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={notice !== null}
+        autoHideDuration={4000}
+        onClose={() => setNotice(null)}
+      >
+        {notice ? (
+          <Alert severity={notice.severity} onClose={() => setNotice(null)}>
+            {notice.text}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
     </Box>
   );
 }

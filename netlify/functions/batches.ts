@@ -23,6 +23,17 @@ function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
+function toRowValues(data: BatchPayload) {
+  return [
+    data.recipe,
+    data.batch,
+    data.productionSite,
+    data.materialWeight,
+    data.releaseDate,
+    data.issuedBy,
+  ];
+}
+
 export default async (req: Request): Promise<Response> => {
   try {
     const spreadsheetId = process.env.SPREADSHEET_ID;
@@ -65,18 +76,32 @@ export default async (req: Request): Promise<Response> => {
         range: `'${sheetName}'!A:F`,
         valueInputOption: "RAW",
         insertDataOption: "INSERT_ROWS",
-        requestBody: {
-          values: [
-            [
-              data.recipe,
-              data.batch,
-              data.productionSite,
-              data.materialWeight,
-              data.releaseDate,
-              data.issuedBy,
-            ],
-          ],
-        },
+        requestBody: { values: [toRowValues(data)] },
+      });
+      return Response.json({ success: true });
+    }
+
+    if (req.method === "PUT") {
+      const data = (await req.json()) as BatchPayload & { row: number };
+
+      if (!Number.isInteger(data.row) || data.row < 2) {
+        return Response.json(
+          { error: "Некорректный номер строки" },
+          { status: 400 },
+        );
+      }
+      if (!data.recipe || !data.batch) {
+        return Response.json(
+          { error: "Поля «Рецепт» и «Партия» обязательны" },
+          { status: 400 },
+        );
+      }
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `'${sheetName}'!A${data.row}:F${data.row}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [toRowValues(data)] },
       });
       return Response.json({ success: true });
     }
