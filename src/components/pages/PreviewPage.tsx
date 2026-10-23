@@ -60,7 +60,6 @@ function PreviewPage() {
               action={() => navigate("/productionList")}
             />
           </Box>
-          <StandartBtn name="Архив ТК" action={() => navigate("/archive")} />
         </Box>
       </Box>
     </Box>

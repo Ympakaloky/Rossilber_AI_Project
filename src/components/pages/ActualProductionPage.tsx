@@ -22,6 +22,13 @@ import type {
   OperationFact,
   OperationPlan,
 } from "../../types/actualProduction";
+import Field from "../common/Field";
+import { smallText, tableSx } from "../common/tableStyles";
+import {
+  filled,
+  moistureColumns,
+  moistureStatus,
+} from "../../utils/production";
 
 interface Notice {
   severity: "success" | "error";
@@ -64,87 +71,6 @@ const emptyFact: OperationFact = {
 };
 
 const emptyDosing: DosingForm = { startTime: "", endTime: "", fullName: "" };
-
-const filled = (v: string) => v.trim() !== "";
-
-// Поля замера влажности: заполняются все вместе или не заполняются вовсе
-const moistureKeys = [
-  "moistureCheckDate",
-  "moistureBatch",
-  "moistureNorm",
-  "moistureResult",
-] as const;
-
-type MoistureKey = (typeof moistureKeys)[number];
-
-const moistureColumns: { key: MoistureKey; label: string; width: number }[] = [
-  { key: "moistureCheckDate", label: "Дата замера", width: 130 },
-  { key: "moistureBatch", label: "Партия сырья", width: 160 },
-  { key: "moistureNorm", label: "Норма, %", width: 110 },
-  { key: "moistureResult", label: "Результат, %", width: 120 },
-];
-
-type MoistureStatus = "empty" | "complete" | "partial";
-
-function moistureStatus(f: OperationFact): MoistureStatus {
-  const count = moistureKeys.filter((k) => filled(f[k])).length;
-  if (count === 0) return "empty";
-  return count === moistureKeys.length ? "complete" : "partial";
-}
-
-// Общие стили мелкого шрифта и компактных полей внутри таблицы
-const smallText = {
-  "& .MuiInputBase-input": { fontSize: "0.8125rem" },
-  "& .MuiInputLabel-root": { fontSize: "0.8125rem" },
-};
-const compactPadding = {
-  "& .MuiInputBase-input": { py: "6px", px: "10px" },
-};
-
-// Один стиль для обеих таблиц страницы
-const tableSx = {
-  "& .MuiTableCell-root": {
-    color: "inherit",
-    fontSize: "0.8125rem",
-    padding: "6px 10px",
-  },
-  "& .MuiTableCell-head": {
-    fontWeight: 600,
-    whiteSpace: "nowrap",
-  },
-} as const;
-
-interface FieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: boolean;
-  hideLabel?: boolean;
-}
-
-// Поле ввода. Вынесено на уровень модуля, а не внутрь страницы: компонент,
-// объявленный внутри другого компонента, пересоздаётся при каждой
-// перерисовке, и поле теряло бы фокус после каждой набранной буквы.
-function Field({
-  label,
-  value,
-  onChange,
-  error = false,
-  hideLabel = false,
-}: FieldProps) {
-  return (
-    <TextField
-      label={hideLabel ? undefined : label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      error={error}
-      size="small"
-      fullWidth
-      sx={[smallText, hideLabel && compactPadding]}
-      slotProps={{ htmlInput: { "aria-label": label } }}
-    />
-  );
-}
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
